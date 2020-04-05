@@ -9,9 +9,11 @@
 import UIKit
 
 public enum MSBBarChartViewOption {
-    case space(CGFloat)
+    case interitemSpace(CGFloat)
     case bottomSpace(CGFloat)
     case topSpace(CGFloat)
+    case leftSpace(CGFloat)
+    case rightSpace(CGFloat)
     case xAxisLabelColor(UIColor)
     case yAxisNumberOfInterval(Int)
     case yAxisTitle(String)
@@ -21,11 +23,15 @@ public enum MSBBarChartViewOption {
 open class MSBBarChartView: UIView {
     open var assignmentOfColor: [Range<CGFloat>: UIColor] = [0.0..<0.25: #colorLiteral(red: 0.1294117719, green: 0.2156862766, blue: 0.06666667014, alpha: 1), 0.25..<0.50: #colorLiteral(red: 0.1960784346, green: 0.3411764801, blue: 0.1019607857, alpha: 1), 0.50..<0.75: #colorLiteral(red: 0.2745098174, green: 0.4862745106, blue: 0.1411764771, alpha: 1), 0.75..<1.0: #colorLiteral(red: 0.3411764801, green: 0.6235294342, blue: 0.1686274558, alpha: 1)] // デフォルト
 
-    var space: CGFloat = 12.0
+    var interitemSpace: CGFloat = 12.0
 
     var topSpace: CGFloat = 40.0
 
     var bottomSpace: CGFloat = 40.0
+    
+    var leftSpace: CGFloat = 6.0
+    
+    var rightSpace: CGFloat = 6.0
 
     var xAxisLabelColor = #colorLiteral(red: 0.501960814, green: 0.501960814, blue: 0.501960814, alpha: 1)
 
@@ -81,14 +87,14 @@ extension MSBBarChartView {
     }
 
     private func showEntry(index: Int, entry: BarEntry, maxInterval: CGFloat, animated: Bool) {
-        let xPos: CGFloat = space + CGFloat(index) * (barWidth + space) + widthBetweenZeroAndFirst
+        let xPos: CGFloat = leftSpace + CGFloat(index) * (barWidth + interitemSpace) + widthBetweenZeroAndFirst
         let yPos: CGFloat = translateHeightValueToYPosition(value: CGFloat(Int(entry.textValue)!) / CGFloat(maxYvalue))
         if !entry.isZeroBar() {
             drawBar(xPos: xPos, yPos: yPos, color: getBarColor(entry), animated: animated)
         }
 		// don't draw a value on a bar
-        //drawBarValue(xPos: xPos - space / 2, yPos: yPos - space, textValue: entry.textValue, color: entry.color)
-        drawXLabel(xPos: xPos - space / 2, yPos: mainLayer.frame.height - bottomSpace + 10, title: entry.title, textColor: entry.textColor)
+        //drawBarValue(xPos: xPos - interitemSpace / 2, yPos: yPos - interitemSpace, textValue: entry.textValue, color: entry.color)
+        drawXLabel(xPos: xPos - interitemSpace / 2, yPos: mainLayer.frame.height - bottomSpace + 10, title: entry.title, textColor: entry.textColor)
     }
 
     private func drawBar(xPos: CGFloat, yPos: CGFloat, color: UIColor, animated: Bool) {
@@ -149,7 +155,7 @@ extension MSBBarChartView {
             let yPos = translateHeightValueToYPosition(value: (lineInfo["value"])!)
             let path = UIBezierPath()
             path.move(to: CGPoint(x: xPos, y: yPos))
-            path.addLine(to: CGPoint(x: scrollView.frame.size.width - space, y: yPos))
+            path.addLine(to: CGPoint(x: scrollView.frame.size.width - interitemSpace, y: yPos))
             let lineLayer = CAShapeLayer()
             lineLayer.path = path.cgPath
             lineLayer.lineWidth = 0.5
@@ -210,7 +216,7 @@ extension MSBBarChartView {
 
     private func drawBarValue(xPos: CGFloat, yPos: CGFloat, textValue: String, color: UIColor) {
         let textLayer = CATextLayer()
-        textLayer.frame = CGRect(x: xPos, y: yPos, width: barWidth + space, height: 16)
+        textLayer.frame = CGRect(x: xPos, y: yPos, width: barWidth + interitemSpace, height: 16)
         textLayer.foregroundColor = #colorLiteral(red: 0.05882352963, green: 0.180392161, blue: 0.2470588237, alpha: 1)
         textLayer.backgroundColor = UIColor.clear.cgColor
         textLayer.alignmentMode = CATextLayerAlignmentMode.center
@@ -223,7 +229,7 @@ extension MSBBarChartView {
 
     private func drawXLabel(xPos: CGFloat, yPos: CGFloat, title: String, textColor: UIColor) {
         let textLayer = CATextLayer()
-        textLayer.frame = CGRect(x: xPos, y: yPos, width: barWidth + space, height: 16)
+        textLayer.frame = CGRect(x: xPos, y: yPos, width: barWidth + interitemSpace, height: 16)
         textLayer.foregroundColor = textColor.cgColor
         textLayer.backgroundColor = UIColor.clear.cgColor
         textLayer.alignmentMode = CATextLayerAlignmentMode.center
@@ -258,12 +264,16 @@ extension MSBBarChartView {
     open func setOptions(_ options: [MSBBarChartViewOption]) {
         for option in options {
             switch (option) {
-            case let .space(value):
-                space = value
+            case let .interitemSpace(value):
+                interitemSpace = value
             case let .topSpace(value):
                 topSpace = value
             case let .bottomSpace(value):
                 bottomSpace = value
+            case let .leftSpace(value):
+                leftSpace = value
+            case let .rightSpace(value):
+                rightSpace = value
             case let .xAxisLabelColor(value):
                 xAxisLabelColor = value
             case let .yAxisNumberOfInterval(value):
@@ -279,8 +289,8 @@ extension MSBBarChartView {
     open func start(animated: Bool) {
         guard let dataSource = self.dataEntries, let max = getMaxEntry(), let interval = Int(max.textValue) else { return }
         mainLayer.sublayers?.forEach({ $0.removeFromSuperlayer() })
-        barWidth = (scrollView.frame.width - (CGFloat(dataSource.count + 1) * space) - yAxisLabelWidth) / CGFloat(dataSource.count)
-        scrollView.contentSize = CGSize(width: (barWidth + space) * CGFloat(dataSource.count), height: self.frame.size.height)
+        barWidth = (scrollView.frame.width - (CGFloat(dataSource.count - 1) * interitemSpace) - leftSpace - rightSpace - yAxisLabelWidth) / CGFloat(dataSource.count)
+        scrollView.contentSize = CGSize(width: (barWidth + interitemSpace) * CGFloat(dataSource.count), height: self.frame.size.height)
         mainLayer.frame = CGRect(x: 0, y: 0, width: scrollView.contentSize.width, height: scrollView.contentSize.height)
         drawVericalAxisLabels()
         drawHorizontalLines()
