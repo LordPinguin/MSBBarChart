@@ -80,28 +80,28 @@ extension MSBBarChartView {
         self.addSubview(scrollView)
     }
 
-    private func showEntry(index: Int, entry: BarEntry, maxInterval: CGFloat) {
+    private func showEntry(index: Int, entry: BarEntry, maxInterval: CGFloat, animated: Bool) {
         let xPos: CGFloat = space + CGFloat(index) * (barWidth + space) + widthBetweenZeroAndFirst
         let yPos: CGFloat = translateHeightValueToYPosition(value: CGFloat(Int(entry.textValue)!) / CGFloat(maxYvalue))
         if !entry.isZeroBar() {
-            drawBar(xPos: xPos, yPos: yPos, color: getBarColor(entry))
+            drawBar(xPos: xPos, yPos: yPos, color: getBarColor(entry), animated: animated)
         }
 		// don't draw a value on a bar
         //drawBarValue(xPos: xPos - space / 2, yPos: yPos - space, textValue: entry.textValue, color: entry.color)
         drawXLabel(xPos: xPos - space / 2, yPos: mainLayer.frame.height - bottomSpace + 10, title: entry.title, textColor: entry.textColor)
     }
 
-    private func drawBar(xPos: CGFloat, yPos: CGFloat, color: UIColor) {
+    private func drawBar(xPos: CGFloat, yPos: CGFloat, color: UIColor, animated: Bool) {
         let barLayer = CALayer()
         barLayer.cornerRadius = 4.0
         barLayer.frame = CGRect(x: xPos, y: self.mainLayer.frame.height - self.bottomSpace, width: self.barWidth, height: 0)
         barLayer.anchorPoint = CGPoint(x: 0.5, y: 1.0)
         barLayer.backgroundColor = color.cgColor
         mainLayer.addSublayer(barLayer)
-        executeAnimation(xPos, yPos, color, barLayer)
+        executeAnimation(xPos, yPos, color, barLayer, animated: animated)
     }
 
-    private func executeAnimation(_ xPos: CGFloat, _ yPos: CGFloat, _ color: UIColor, _ layer: CALayer) {
+    private func executeAnimation(_ xPos: CGFloat, _ yPos: CGFloat, _ color: UIColor, _ layer: CALayer, animated: Bool) {
         if yPos != mainLayer.frame.size.height - bottomSpace {
             let barLayerBase = CALayer()
             barLayerBase.frame = CGRect(x: xPos, y: self.mainLayer.frame.height - self.bottomSpace, width: self.barWidth, height: 0)
@@ -114,7 +114,9 @@ extension MSBBarChartView {
             animation.toValue = CGRect(x: xPos, y: self.mainLayer.frame.height - self.bottomSpace, width: self.barWidth, height: -1 * (self.mainLayer.frame.height - self.bottomSpace - yPos) / 2)
             animation.isRemovedOnCompletion = false
             animation.fillMode = CAMediaTimingFillMode(rawValue: "forwards")
-            barLayerBase.add(animation, forKey: "bounds")
+            if animated {
+                barLayerBase.add(animation, forKey: "bounds")
+            }
             barLayerBase.frame = animation.toValue as! CGRect
         }
         let subAnimation = CABasicAnimation(keyPath: "bounds")
@@ -123,7 +125,9 @@ extension MSBBarChartView {
         subAnimation.toValue = CGRect(x: xPos, y: self.mainLayer.frame.height - self.bottomSpace, width: self.barWidth, height: -1 * (self.mainLayer.frame.height - self.bottomSpace - yPos))
         subAnimation.isRemovedOnCompletion = false
         subAnimation.fillMode = CAMediaTimingFillMode(rawValue: "forwards")
-        layer.add(subAnimation, forKey: "bounds")
+        if animated {
+            layer.add(subAnimation, forKey: "bounds")
+        }
         layer.frame = subAnimation.toValue as! CGRect
     }
 
@@ -272,7 +276,7 @@ extension MSBBarChartView {
         }
     }
 
-    open func start() {
+    open func start(animated: Bool) {
         guard let dataSource = self.dataEntries, let max = getMaxEntry(), let interval = Int(max.textValue) else { return }
         mainLayer.sublayers?.forEach({ $0.removeFromSuperlayer() })
         barWidth = (scrollView.frame.width - (CGFloat(dataSource.count + 1) * space) - yAxisLabelWidth) / CGFloat(dataSource.count)
@@ -281,7 +285,7 @@ extension MSBBarChartView {
         drawVericalAxisLabels()
         drawHorizontalLines()
         for i in 0..<dataSource.count {
-            showEntry(index: i, entry: dataSource[i], maxInterval: CGFloat(interval))
+            showEntry(index: i, entry: dataSource[i], maxInterval: CGFloat(interval), animated: animated)
         }
     }
 
